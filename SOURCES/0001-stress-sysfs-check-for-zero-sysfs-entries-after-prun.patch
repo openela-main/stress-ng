@@ -1,0 +1,55 @@
+From 6a22f648bd3452c83c5f88ec530d496fefe5e9a0 Mon Sep 17 00:00:00 2001
+From: Colin Ian King <colin.i.king@gmail.com>
+Date: Mon, 21 Nov 2022 12:16:47 +0000
+Subject: [PATCH 1/3] stress-sysfs: check for zero sysfs entries after pruning
+ the directory
+
+Signed-off-by: Colin Ian King <colin.i.king@gmail.com>
+---
+ stress-sysfs.c | 18 +++++++++++-------
+ 1 file changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/stress-sysfs.c b/stress-sysfs.c
+index 00fe9ba08100..24267d00ee5a 100644
+--- a/stress-sysfs.c
++++ b/stress-sysfs.c
+@@ -634,14 +634,11 @@ static int stress_sysfs(const stress_args_t *args)
+ 	}
+ 
+ 	n = scandir("/sys", &dlist, NULL, alphasort);
+-	if (n <= 0) {
+-		if (args->instance == 0)
+-			pr_inf_skip("%s: no /sys entries found, skipping stressor\n", args->name);
+-		stress_dirent_list_free(dlist, n);
+-		(void)munmap((void *)ctxt, sizeof(*ctxt));
+-		return EXIT_NO_RESOURCE;
+-	}
++	if (n <= 0)
++		goto exit_no_sysfs_entries;
+ 	n = stress_dirent_list_prune(dlist, n);
++	if (n <= 0)
++		goto exit_no_sysfs_entries;
+ 
+ 	os_release = 0;
+ #if defined(HAVE_UNAME) &&	\
+@@ -806,10 +803,17 @@ finish:
+ 		(void)close(ctxt->kmsgfd);
+ 	(void)shim_pthread_spin_destroy(&lock);
+ 
++exit_free:
+ 	stress_dirent_list_free(dlist, n);
+ 	(void)munmap((void *)ctxt, sizeof(*ctxt));
+ 
+ 	return rc;
++
++exit_no_sysfs_entries:
++	if (args->instance == 0)
++		pr_inf_skip("%s: no /sys entries found, skipping stressor\n", args->name);
++	rc = EXIT_NO_RESOURCE;
++	goto exit_free;
+ }
+ 
+ stressor_info_t stress_sysfs_info = {
+-- 
+2.38.1
+
