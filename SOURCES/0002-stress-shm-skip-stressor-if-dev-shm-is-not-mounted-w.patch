@@ -1,0 +1,37 @@
+From f424f5b774b7cb0fd7939d28e68db6fa977baea1 Mon Sep 17 00:00:00 2001
+From: Colin Ian King <colin.i.king@gmail.com>
+Date: Mon, 21 Nov 2022 12:45:11 +0000
+Subject: [PATCH 2/3] stress-shm: skip stressor if /dev/shm is not mounted with
+ tmpfs on linux
+
+Signed-off-by: Colin Ian King <colin.i.king@gmail.com>
+---
+ stress-shm.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/stress-shm.c b/stress-shm.c
+index 91bcd961aeb1..4e6327ac97d4 100644
+--- a/stress-shm.c
++++ b/stress-shm.c
+@@ -122,6 +122,18 @@ static int stress_shm_posix_child(
+ 	const size_t page_size = args->page_size;
+ 	struct sigaction sa;
+ 
++#if defined(__linux__)
++	/*
++	 *  /dev/shm should be mounted with tmpfs and
++	 *  be writeable, if not shm_open will fail
++	 */
++	if (access("/dev/shm", W_OK) < 0) {
++		pr_inf("%s: cannot access /dev/shm for writes, errno=%d (%s) skipping stressor\n",
++			args->name, errno, strerror(errno));
++		return EXIT_NO_RESOURCE;
++	}
++#endif
++
+ 	addrs = calloc(shm_posix_objects, sizeof(*addrs));
+ 	if (!addrs) {
+ 		pr_fail("%s: calloc on addrs failed, out of memory\n", args->name);
+-- 
+2.38.1
+
