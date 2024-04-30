@@ -1,5 +1,5 @@
 Name:		stress-ng
-Version:	0.15.00
+Version:	0.17.01
 Release:	1%{?dist}
 Summary:	Stress test a computer system in various ways
 
@@ -25,9 +25,6 @@ BuildRequires: zlib-devel
 BuildRequires: Judy-devel
 
 # Patches
-Patch1: 0001-stress-sysfs-check-for-zero-sysfs-entries-after-prun.patch
-Patch2: 0002-stress-shm-skip-stressor-if-dev-shm-is-not-mounted-w.patch
-Patch3: 0003-stress-shm-move-dev-shm-check-to-earlier-in-the-setu.patch
 
 %description
 Stress test a computer system in various ways. It was designed to exercise
@@ -36,9 +33,6 @@ system kernel interfaces.
 
 %prep
 %setup -q
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
 
 %build
 export CFLAGS="%{optflags}"
@@ -62,6 +56,10 @@ install -pm 644 bash-completion/%{name} \
 %{_datadir}/bash-completion/completions/%{name}
 
 %changelog
+* Thu Nov 16 2023 John Kacur <jkacur@redhat.com> - 0.17.01-1
+- Rebase to upstream V0.17.01
+Resolves: RHEL-7859
+
 * Mon Nov 21 2022 John Kacur <jkacur@redhat.com> - 0.15.00-1
 - Rebase to upstream V0.15.00
 - Add the following upstream patches
