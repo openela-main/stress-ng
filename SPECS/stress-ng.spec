@@ -1,11 +1,11 @@
 Name:		stress-ng
-Version:	0.17.01
-Release:	1%{?dist}
+Version:	0.17.08
+Release:	2%{?dist}
 Summary:	Stress test a computer system in various ways
 
 License:	GPLv2+
 URL:		https://github.com/ColinIanKing/%{name}/tarball
-Source0:	https://github.com/ColinIanKing/%{name}/tarball/%{name}-%{version}.tar.xz
+Source0:	https://github.com/ColinIanKing/%{name}/tarball/%{name}-%{version}.tar.gz
 
 # Work around for ld.gold error
 %undefine _package_note_flags
@@ -25,6 +25,7 @@ BuildRequires: zlib-devel
 BuildRequires: Judy-devel
 
 # Patches
+Patch1:	core-asm-arm.h-declare-stress_asm_arm_yield-when-HAV.patch
 
 %description
 Stress test a computer system in various ways. It was designed to exercise
@@ -33,6 +34,7 @@ system kernel interfaces.
 
 %prep
 %setup -q
+%patch1 -p1
 
 %build
 export CFLAGS="%{optflags}"
@@ -56,6 +58,15 @@ install -pm 644 bash-completion/%{name} \
 %{_datadir}/bash-completion/completions/%{name}
 
 %changelog
+* Wed May 29 2024 John Kacur <jkacur@redhat.com> - 0.17.08-2
+- Fix missing corresponding macro to apply patch
+Resolves: RHEL-33304
+
+* Thu May 23 2024 John Kacur <jkacur@redhat.com> - 0.17.08-1
+- Rebase to upstream V0.17.08
+- ARM: Don't declare inlined yield helper if yield is not available
+Resolves: RHEL-33304
+
 * Thu Nov 16 2023 John Kacur <jkacur@redhat.com> - 0.17.01-1
 - Rebase to upstream V0.17.01
 Resolves: RHEL-7859
