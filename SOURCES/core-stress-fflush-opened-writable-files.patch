@@ -1,0 +1,83 @@
+From 69d710955063add902754f2bd841f9b12e59cc16 Mon Sep 17 00:00:00 2001
+From: Colin Ian King <colin.i.king@gmail.com>
+Date: Fri, 1 Nov 2024 12:56:24 +0000
+Subject: [PATCH] core-*, stress-*: fflush opened writable files
+
+Signed-off-by: Colin Ian King <colin.i.king@gmail.com>
+---
+ core-klog.c     | 2 ++
+ stress-jpeg.c   | 1 +
+ stress-ng.c     | 1 +
+ stress-opcode.c | 3 +++
+ stress-rename.c | 1 +
+ 5 files changed, 8 insertions(+)
+
+diff --git a/core-klog.c b/core-klog.c
+index 419e59b6f922..348608c28ac8 100644
+--- a/core-klog.c
++++ b/core-klog.c
+@@ -223,9 +223,11 @@ log_info:
+ 				last_logged = stress_time_now();
+ 			}
+ 		}
++		(void)fflush(klog_fp);
+ 		(void)fclose(klog_fp);
+ 		_exit(EXIT_SUCCESS);
+ 	}
++	(void)fflush(klog_fp);
+ 	(void)fclose(klog_fp);
+ #endif
+ }
+diff --git a/stress-jpeg.c b/stress-jpeg.c
+index 4afe5018bd4b..8a8104f37b2b 100644
+--- a/stress-jpeg.c
++++ b/stress-jpeg.c
+@@ -316,6 +316,7 @@ PRAGMA_UNROLL_N(8)
+ 
+ 	(void)jpeg_write_scanlines(&cinfo, row_pointer, (JDIMENSION)y_max);
+ 	jpeg_finish_compress(&cinfo);
++	(void)fflush(fp);
+ 	(void)fclose(fp);
+ 	jpeg_destroy_compress(&cinfo);
+ 	t2 = stress_time_now();
+diff --git a/stress-ng.c b/stress-ng.c
+index a1d38e79cfee..17bd2f42c300 100644
+--- a/stress-ng.c
++++ b/stress-ng.c
+@@ -3770,6 +3770,7 @@ static void stress_yaml_close(FILE *yaml)
+ {
+ 	if (yaml) {
+ 		pr_yaml(yaml, "...\n");
++		(void)fflush(yaml);
+ 		(void)fclose(yaml);
+ 	}
+ }
+diff --git a/stress-opcode.c b/stress-opcode.c
+index cec65ec51cde..c7c1a5b2e653 100644
+--- a/stress-opcode.c
++++ b/stress-opcode.c
+@@ -513,6 +513,9 @@ again:
+ 			 * corruption since the child will
+ 			 * die soon anyhow
+ 			 */
++			(void)fflush(stdout);
++			(void)fflush(stderr);
++
+ 			(void)fclose(stdin);
+ 			(void)fclose(stdout);
+ 			(void)fclose(stderr);
+diff --git a/stress-rename.c b/stress-rename.c
+index 0dee9e75f04a..b0b3d119e5b6 100644
+--- a/stress-rename.c
++++ b/stress-rename.c
+@@ -267,6 +267,7 @@ restart:
+ #endif
+ 		return rc;
+ 	}
++	(void)fflush(fp);
+ 	(void)fclose(fp);
+ 
+ 	while (stress_continue(args)) {
+-- 
+2.47.0
+

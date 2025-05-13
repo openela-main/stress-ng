@@ -1,0 +1,51 @@
+From a679a1fa9331e9b07e0c3a87f62cbda2511e9453 Mon Sep 17 00:00:00 2001
+From: Colin Ian King <colin.i.king@gmail.com>
+Date: Tue, 5 Nov 2024 16:06:01 +0000
+Subject: [PATCH 7/8] core-target-clones: add more power9,10,11 target clone
+ build time constraints
+
+Adding a gcc check for the builtins for power9,10,11 makes the target clone
+built time constraints more conservative.
+
+Fixes: https://github.com/ColinIanKing/stress-ng/issues/451
+
+Signed-off-by: Colin Ian King <colin.i.king@gmail.com>
+---
+ core-target-clones.h | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/core-target-clones.h b/core-target-clones.h
+index 874d590cdc2b..c2166e51f339 100644
+--- a/core-target-clones.h
++++ b/core-target-clones.h
+@@ -198,21 +198,24 @@
+ #if defined(STRESS_ARCH_PPC64) &&	\
+     defined(HAVE_TARGET_CLONES)
+ 
+-#if defined(HAVE_TARGET_CLONES_POWER9)
++#if defined(HAVE_TARGET_CLONES_POWER9) &&	\
++    defined(HAVE_BUILTIN_CPU_IS_POWER10)
+ #define TARGET_CLONE_POWER9 "cpu=power9",
+ #define TARGET_CLONE_USE
+ #else
+ #define TARGET_CLONE_POWER9
+ #endif
+ 
+-#if defined(HAVE_TARGET_CLONES_POWER10)
++#if defined(HAVE_TARGET_CLONES_POWER10)	&&	\
++    defined(HAVE_BUILTIN_CPU_IS_POWER10)
+ #define TARGET_CLONE_POWER10 "cpu=power10",
+ #define TARGET_CLONE_USE
+ #else
+ #define TARGET_CLONE_POWER10
+ #endif
+ 
+-#if defined(HAVE_TARGET_CLONES_POWER11)
++#if defined(HAVE_TARGET_CLONES_POWER11) &&	\
++    defined(HAVE_BUILTIN_CPU_IS_POWER11)
+ #define TARGET_CLONE_POWER11 "cpu=power11",
+ #define TARGET_CLONE_USE
+ #else
+-- 
+2.47.0
+

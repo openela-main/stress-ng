@@ -1,11 +1,11 @@
 Name:		stress-ng
-Version:	0.17.08
-Release:	2%{?dist}
+Version:	0.18.06
+Release:	1%{?dist}
 Summary:	Stress test a computer system in various ways
 
 License:	GPLv2+
 URL:		https://github.com/ColinIanKing/%{name}/tarball
-Source0:	https://github.com/ColinIanKing/%{name}/tarball/%{name}-%{version}.tar.gz
+Source0:	https://github.com/ColinIanKing/%{name}/tarball/%{name}-%{version}.tar.xz
 
 # Work around for ld.gold error
 %undefine _package_note_flags
@@ -25,7 +25,14 @@ BuildRequires: zlib-devel
 BuildRequires: Judy-devel
 
 # Patches
-Patch1:	core-asm-arm.h-declare-stress_asm_arm_yield-when-HAV.patch
+Patch1: core-stress-fflush-opened-writable-files.patch
+Patch2: stress-fp-error-remove-duplicated-sqrt.patch
+Patch3: README.md-add-another-kernel-commit-to-the-2024-kern.patch
+Patch4: core-shim-add-shim-to-ppoll-and-workaround-fortifica.patch
+Patch5: core-shim-use-shim-d-types-for-shim_poll-args.patch
+Patch6: core-shim-limit-_FORTIFY_SOURCE-to-2-for-ALT-linux-g.patch
+Patch7: core-target-clones-add-more-power9-10-11-target-clon.patch
+Patch8: stress-brk-ensure-the-failure-sbrk-errno-is-being-ch.patch
 
 %description
 Stress test a computer system in various ways. It was designed to exercise
@@ -58,6 +65,11 @@ install -pm 644 bash-completion/%{name} \
 %{_datadir}/bash-completion/completions/%{name}
 
 %changelog
+* Wed Nov 06 2024 John Kacur <jkacur@redhat.com> - 0.18.06-1
+- Update the stress-ng-0.18.06 upstream
+- Include some upstream patches after 0.18.06
+Resolves: RHEL-65474
+
 * Wed May 29 2024 John Kacur <jkacur@redhat.com> - 0.17.08-2
 - Fix missing corresponding macro to apply patch
 Resolves: RHEL-33304

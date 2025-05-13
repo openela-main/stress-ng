@@ -1,0 +1,224 @@
+From 9b3e9418715b013889e487ac40d14b85a2def7c4 Mon Sep 17 00:00:00 2001
+From: Colin Ian King <colin.i.king@gmail.com>
+Date: Mon, 4 Nov 2024 14:29:09 +0000
+Subject: [PATCH 4/8] core-shim: add shim to ppoll() and workaround
+ fortification issues
+
+It appears that ppoll() on 32 bit builds with _FORTIFY_SOURCE > 2 can
+cause some issues on some build environments. Workaround this by
+adding a shim_ppoll() wrapper with reduced _FORTIFY_SOURCE settings
+to workaround this issue.
+
+Signed-off-by: Colin Ian King <colin.i.king@gmail.com>
+---
+ core-shim.c         | 37 +++++++++++++++++++++++++++++++++++++
+ core-shim.h         | 20 ++++++++++++++++++++
+ stress-poll.c       |  6 +++---
+ stress-procfs.c     |  2 +-
+ stress-sysbadaddr.c |  8 ++++----
+ stress-syscall.c    |  2 +-
+ stress-sysfs.c      |  2 +-
+ 7 files changed, 67 insertions(+), 10 deletions(-)
+
+diff --git a/core-shim.c b/core-shim.c
+index e291f2364640..8f51991137e3 100644
+--- a/core-shim.c
++++ b/core-shim.c
+@@ -2824,3 +2824,40 @@ int shim_mseal(void *addr, size_t len, unsigned long flags)
+ 	return shim_enosys(0, addr, len, flags);
+ #endif
+ }
++
++
++/*
++ *  shim_ppoll()
++ *	shim wrapper for ppoll
++ */
++int shim_ppoll(
++	struct pollfd *fds,
++	nfds_t nfds,
++	const struct timespec *tmo_p,
++	const sigset_t *sigmask)
++{
++
++#if defined(HAVE_PPOLL)
++
++#if defined(_FORTIFY_SOURCE)
++#undef STRESS__FORTIFY_SOURCE
++#define STRESS__FORTIFY_SOURCE _FORTIFY_SOURCE
++#undef _FORTIFY_SOURCE
++#define _FORTIFY_SOURCE 2
++#endif
++
++	return ppoll(fds, nfds, tmo_p, sigmask);
++
++#if defined(STRESS__FORTIFY_SOURCE)
++#undef _FORTIFY_SOURCE
++#define _FORTIFY_SOURCE STRESS__FORTIFY_SOURCE
++#undef STRESS__FORTIFY_SOURCE
++#endif
++
++#elif defined(__NR_ppoll)
++	return (int)syscall(__NR_ppoll, fds, nfds, tmo_p, sigmask);
++#else
++	return shim_enosys(0, fds, nfds, tmo_p, sigmask);
++#endif
++}
++
+diff --git a/core-shim.h b/core-shim.h
+index 604f187828ac..2ec591f00ba4 100644
+--- a/core-shim.h
++++ b/core-shim.h
+@@ -23,6 +23,10 @@
+ #include <sys/uio.h>
+ #endif
+ 
++#if defined(HAVE_POLL_H)
++#include <poll.h>
++#endif
++
+ #include <dirent.h>
+ #include <sched.h>
+ #include <sys/resource.h>
+@@ -325,6 +329,20 @@ typedef struct shim_timex {
+ } shim_timex_t;
+ #endif
+ 
++#if defined(HAVE_PPOLL)
++typedef nfds_t shim_nfds_t;
++
++typedef struct pollfd shim_pollfd_t;
++#else
++typedef unsigned int shim_nfds_t;
++
++typedef struct shim_pollfd {
++	int fd;
++	short events;
++	short revents;
++} shim_pollfd_t;
++#endif
++
+ /*
+  *  shim_unconstify_ptr()
+  *      some older system calls require non-const void *
+@@ -502,5 +520,7 @@ extern int shim_lstat(const char *pathname, struct stat *statbuf);
+ extern int shim_stat(const char *pathname, struct stat *statbuf);
+ extern unsigned char shim_dirent_type(const char *path, const struct dirent *d);
+ extern int shim_mseal(void *addr, size_t len, unsigned long flags);
++extern int shim_ppoll(struct pollfd *fds, nfds_t nfds,
++	const struct timespec *tmo_p, const sigset_t *sigmask);
+ 
+ #endif
+diff --git a/stress-poll.c b/stress-poll.c
+index 83d6c55c7375..406b106aa365 100644
+--- a/stress-poll.c
++++ b/stress-poll.c
+@@ -277,7 +277,7 @@ abort:
+ 			(void)sigemptyset(&sigmask);
+ 			(void)sigaddset(&sigmask, SIGPIPE);
+ 
+-			ret = ppoll(poll_fds, max_fds, &ts, &sigmask);
++			ret = shim_ppoll(poll_fds, max_fds, &ts, &sigmask);
+ 			if ((g_opt_flags & OPT_FLAGS_VERIFY) &&
+ 			    (ret < 0) && (errno != EINTR)) {
+ 				pr_fail("%s: ppoll failed, errno=%d (%s)\n",
+@@ -298,7 +298,7 @@ abort:
+ 			/* Exercise illegal poll timeout */
+ 			ts.tv_sec = 0;
+ 			ts.tv_nsec = 1999999999;
+-			VOID_RET(int, ppoll(poll_fds, max_fds, &ts, &sigmask));
++			VOID_RET(int, shim_ppoll(poll_fds, max_fds, &ts, &sigmask));
+ 			if (!stress_continue(args))
+ 				break;
+ 
+@@ -317,7 +317,7 @@ abort:
+ 					if (LIKELY(setrlimit(RLIMIT_NOFILE, &new_rlim) == 0)) {
+ 						ts.tv_sec = 0;
+ 						ts.tv_nsec = 0;
+-						VOID_RET(int, ppoll(poll_fds, max_fds, &ts, &sigmask));
++						VOID_RET(int, shim_ppoll(poll_fds, max_fds, &ts, &sigmask));
+ 
+ 						(void)setrlimit(RLIMIT_NOFILE, &old_rlim);
+ 						if (!stress_continue(args))
+diff --git a/stress-procfs.c b/stress-procfs.c
+index 90b045e1368b..94dece7494ed 100644
+--- a/stress-procfs.c
++++ b/stress-procfs.c
+@@ -516,7 +516,7 @@ mmap_test:
+ 			fds[0].events = POLLIN;
+ 			fds[0].revents = 0;
+ 
+-			VOID_RET(int, ppoll(fds, 1, &ts, &sigmask));
++			VOID_RET(int, shim_ppoll(fds, 1, &ts, &sigmask));
+ 		}
+ #endif
+ 
+diff --git a/stress-sysbadaddr.c b/stress-sysbadaddr.c
+index d77e3f2c9004..e7622bab059c 100644
+--- a/stress-sysbadaddr.c
++++ b/stress-sysbadaddr.c
+@@ -1515,7 +1515,7 @@ static void bad_ppoll1(stress_bad_addr_t *ba, volatile uint64_t *counter)
+ 	sigset_t *ss = (sigset_t *)(inc_addr(addr, sizeof(struct pollfd) + sizeof(struct timespec)));
+ 
+ 	(*counter)++;
+-	VOID_RET(int, ppoll((struct pollfd *)addr, (nfds_t)1, ts, ss));
++	VOID_RET(int, shim_ppoll((struct pollfd *)addr, (nfds_t)1, ts, ss));
+ }
+ 
+ static void bad_ppoll2(stress_bad_addr_t *ba, volatile uint64_t *counter)
+@@ -1528,7 +1528,7 @@ static void bad_ppoll2(stress_bad_addr_t *ba, volatile uint64_t *counter)
+ 	ts.tv_nsec = 0;
+ 
+ 	(*counter)++;
+-	VOID_RET(int, ppoll((struct pollfd *)ba->addr, (nfds_t)16, &ts, &sigmask));
++	VOID_RET(int, shim_ppoll((struct pollfd *)ba->addr, (nfds_t)16, &ts, &sigmask));
+ }
+ 
+ static void bad_ppoll3(stress_bad_addr_t *ba, volatile uint64_t *counter)
+@@ -1543,7 +1543,7 @@ static void bad_ppoll3(stress_bad_addr_t *ba, volatile uint64_t *counter)
+ 		(void)sigemptyset(&sigmask);
+ 
+ 		(*counter)++;
+-		VOID_RET(int, ppoll(&pfd, (nfds_t)1, (struct timespec *)ba->addr, &sigmask));
++		VOID_RET(int, shim_ppoll(&pfd, (nfds_t)1, (struct timespec *)ba->addr, &sigmask));
+ 	}
+ }
+ 
+@@ -1560,7 +1560,7 @@ static void bad_ppoll4(stress_bad_addr_t *ba, volatile uint64_t *counter)
+ 		ts.tv_nsec = 0;
+ 
+ 		(*counter)++;
+-		VOID_RET(int, ppoll(&pfd, (nfds_t)1, &ts, (sigset_t *)ba->addr));
++		VOID_RET(int, shim_ppoll(&pfd, (nfds_t)1, &ts, (sigset_t *)ba->addr));
+ 	}
+ }
+ #endif
+diff --git a/stress-syscall.c b/stress-syscall.c
+index 91fa08e7425f..ca75669acb63 100644
+--- a/stress-syscall.c
++++ b/stress-syscall.c
+@@ -4563,7 +4563,7 @@ static int syscall_ppoll(void)
+ 	VOID_RET(int, sigemptyset(&sigmask));
+ 
+ 	t1 = syscall_time_now();
+-	ret = ppoll(fds, SIZEOF_ARRAY(fds), &ts, &sigmask);
++	ret = shim_ppoll(fds, SIZEOF_ARRAY(fds), &ts, &sigmask);
+ 	t2 = syscall_time_now();
+ 	return ret;
+ }
+diff --git a/stress-sysfs.c b/stress-sysfs.c
+index 4ee4d8237b87..25f032cbe3eb 100644
+--- a/stress-sysfs.c
++++ b/stress-sysfs.c
+@@ -328,7 +328,7 @@ static inline bool stress_sys_rw(stress_ctxt_t *ctxt)
+ 			ts.tv_nsec = 1000;
+ 
+ 			(void)sigemptyset(&sigmask);
+-			VOID_RET(int, ppoll(fds, 1, &ts, &sigmask));
++			VOID_RET(int, shim_ppoll(fds, 1, &ts, &sigmask));
+ 		}
+ #else
+ 		UNEXPECTED
+-- 
+2.47.0
+
