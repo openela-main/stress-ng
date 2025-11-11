@@ -1,5 +1,5 @@
 Name:		stress-ng
-Version:	0.18.06
+Version:	0.19.01
 Release:	1%{?dist}
 Summary:	Stress test a computer system in various ways
 
@@ -25,14 +25,6 @@ BuildRequires: zlib-devel
 BuildRequires: Judy-devel
 
 # Patches
-Patch1: core-stress-fflush-opened-writable-files.patch
-Patch2: stress-fp-error-remove-duplicated-sqrt.patch
-Patch3: README.md-add-another-kernel-commit-to-the-2024-kern.patch
-Patch4: core-shim-add-shim-to-ppoll-and-workaround-fortifica.patch
-Patch5: core-shim-use-shim-d-types-for-shim_poll-args.patch
-Patch6: core-shim-limit-_FORTIFY_SOURCE-to-2-for-ALT-linux-g.patch
-Patch7: core-target-clones-add-more-power9-10-11-target-clon.patch
-Patch8: stress-brk-ensure-the-failure-sbrk-errno-is-being-ch.patch
 
 %description
 Stress test a computer system in various ways. It was designed to exercise
@@ -41,7 +33,6 @@ system kernel interfaces.
 
 %prep
 %setup -q
-%patch1 -p1
 
 %build
 export CFLAGS="%{optflags}"
@@ -65,6 +56,10 @@ install -pm 644 bash-completion/%{name} \
 %{_datadir}/bash-completion/completions/%{name}
 
 %changelog
+* Fri Jun 27 2025 John Kacur <jkacur@redhat.com> - 0.19.01-1
+- Rebase to stress-ng-0.19.01 upstream
+Resolves: RHEL-86707
+
 * Wed Nov 06 2024 John Kacur <jkacur@redhat.com> - 0.18.06-1
 - Update the stress-ng-0.18.06 upstream
 - Include some upstream patches after 0.18.06
