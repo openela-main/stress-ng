@@ -1,5 +1,5 @@
 Name:		stress-ng
-Version:	0.19.01
+Version:	0.19.03
 Release:	1%{?dist}
 Summary:	Stress test a computer system in various ways
 
@@ -56,6 +56,10 @@ install -pm 644 bash-completion/%{name} \
 %{_datadir}/bash-completion/completions/%{name}
 
 %changelog
+* Mon Jan 12 2026 John Kacur <jkacur@redhat.com> - 0.19.03-1
+- Rebase to stress-ng-0.19.03 upstream
+Resolves: RHEL-115230
+
 * Fri Jun 27 2025 John Kacur <jkacur@redhat.com> - 0.19.01-1
 - Rebase to stress-ng-0.19.01 upstream
 Resolves: RHEL-86707
