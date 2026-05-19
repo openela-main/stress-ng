@@ -1,6 +1,6 @@
 Name:		stress-ng
-Version:	0.18.06
-Release:	10%{?dist}
+Version:	0.19.03
+Release:	2%{?dist}
 Summary:	Stress test a computer system in various ways
 
 License:	GPL-2.0-or-later
@@ -9,31 +9,25 @@ Source0:	https://github.com/ColinIanKing/stress-ng/archive/V%{version}/%{name}-%
 
 BuildRequires:	make
 BuildRequires:	gcc
-BuildRequires:	glibc-devel
-BuildRequires:	kernel-headers
+BuildRequires:	g++
+BuildRequires:	Judy-devel
 BuildRequires:	keyutils-libs-devel
+BuildRequires:	kmod-devel
 BuildRequires:	libaio-devel
+BuildRequires:	libatomic
 BuildRequires:	libattr-devel
-%if %{undefined rhel}
-BuildRequires:	libbsd-devel
-%endif
 BuildRequires:	libcap-devel
 BuildRequires:	libgcrypt-devel
+BuildRequires:	libjpeg-devel
+%if %{undefined rhel}
+BuildRequires:	libmd-devel
+%endif
+BuildRequires:	mpfr-devel
 BuildRequires:	lksctp-tools-devel
-BuildRequires:	libatomic
 BuildRequires:	zlib-devel
-BuildRequires:	Judy-devel
 
 # Patches
-Patch1: core-stress-fflush-opened-writable-files.patch
-Patch2: stress-fp-error-remove-duplicated-sqrt.patch
-Patch3: README.md-add-another-kernel-commit-to-the-2024-kern.patch
-Patch4: core-shim-add-shim-to-ppoll-and-workaround-fortifica.patch
-Patch5: core-shim-use-shim-d-types-for-shim_poll-args.patch
-Patch6: core-shim-limit-_FORTIFY_SOURCE-to-2-for-ALT-linux-g.patch
-Patch7: core-target-clones-add-more-power9-10-11-target-clon.patch
-Patch8: stress-brk-ensure-the-failure-sbrk-errno-is-being-ch.patch
-Patch9: stress-ng-Add-fPIC-to-Makefile.patch
+Patch1: stress-ng-Add-fPIC-to-Makefile.patch
 
 %description
 Stress test a computer system in various ways. It was designed to exercise
@@ -63,6 +57,22 @@ install -pm 644 bash-completion/%{name} \
 %{_datadir}/bash-completion/completions/%{name}
 
 %changelog
+* Thu Dec 11 2025 John Kacur <jkacur@redhat.com> - 0.19.03-2
+- Remove ExcludeArch so that the code will be compiled on s390
+Resolves: RHEL-86708
+
+* Fri Aug 15 2025 John Kacur <jkacur@redhat.com> - 0.19.03-1
+- Rebase to stress-ng-0.19.03 upstream
+Resolves: RHEL-86708
+
+* Fri Jul 25 2025 John Kacur <jkacur@redhat.com> - 0.19.02-1
+- Rebase to stress-ng-0.19.02 upstream
+Resolves: RHEL-86708
+
+* Fri Jun 27 2025 John Kacur <jkacur@redhat.com> - 0.19.01-1
+- Rebase to stress-ng-0.19.01 upstream
+Resolves: RHEL-86708
+
 * Fri Feb 14 2025 John Kacur <jkacur@redhat.com> - 0.18.06-10
 - Change the rpminspect.yaml with instructions from David Cantrell
 Resolves: RHEL-33521

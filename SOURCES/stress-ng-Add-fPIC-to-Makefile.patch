@@ -1,9 +1,9 @@
-From f7ce349f5e1c3f4f4c9da9c2040bf6b6b71eccd6 Mon Sep 17 00:00:00 2001
+From 6df5cc75c900b6549c342927ff41a56f816b4169 Mon Sep 17 00:00:00 2001
 From: John Kacur <jkacur@redhat.com>
-Date: Tue, 11 Feb 2025 16:34:04 -0500
+Date: Fri, 15 Aug 2025 13:10:10 -0400
 Subject: [PATCH] stress-ng: Add fPIC to Makefile
 
-Add fPIC to Makefile
+Add -fPIC to Makefile
 
 Signed-off-by: John Kacur <jkacur@redhat.com>
 ---
@@ -11,11 +11,11 @@ Signed-off-by: John Kacur <jkacur@redhat.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/Makefile b/Makefile
-index cb395115cd64..372960503621 100644
+index 6a1128ace84f..6fb61975be88 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -114,7 +114,7 @@ endif
- MACHINE = $(shell make -f Makefile.machine)
+@@ -134,7 +134,7 @@ endif
+ MACHINE := $(shell make -f Makefile.machine)
  ifneq ($(PRESERVE_CFLAGS),1)
  ifneq ($(MACHINE),$(filter $(MACHINE),alpha hppa ia64))
 -flag = -Wformat -fstack-protector-strong -Werror=format-security
@@ -24,5 +24,5 @@ index cb395115cd64..372960503621 100644
  # add -D_FORTIFY_SOURCE=2 if _FORTIFY_SOURCE is not already defined
  #
 -- 
-2.48.1
+2.49.0
 
